@@ -20,6 +20,10 @@ The script provides a command-line interface with several options:
 
 `run_prefix`: A prefix for the run, which can be used if you want to run multiple variants of the same project and later compare them. The default value is an empty string.
 
+`scrape_url`: A URL to scrape for additional data. The default value is an empty string.
+
+`git_repo`: A Git repository to interact with. The default value is an empty string.
+
 <br>
 
 ## Usage
@@ -27,7 +31,7 @@ To run the script, you can use the following command:
 
 ```
 bash
-python gpt_engineer/main.py --project_path [path] --delete_existing [True/False] --model [model] --temperature [temperature] --steps [steps_config] --verbose [True/False] --run_prefix [prefix]
+python gpt_engineer/main.py --project_path [path] --delete_existing [True/False] --model [model] --temperature [temperature] --steps [steps_config] --verbose [True/False] --run_prefix [prefix] --scrape_url [url] --git_repo [repo]
 ```
 
 You can replace the placeholders with the appropriate values. For example, to run the script with the default configuration on a project in the "my_project" directory, you can use the following command:
