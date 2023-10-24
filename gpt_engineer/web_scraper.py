@@ -10,15 +10,9 @@ def push_changes(repo_path):
 
     Returns:
         None
+
+    This function uses the gitpython library to interact with the git repository. It first initializes a Repo object with the provided path, then gets a reference to the 'origin' remote. It then pushes the changes to the remote repository.
     """
     repo = git.Repo(repo_path)
     origin = repo.remote(name='origin')
     origin.push()
-    """
-    repo = git.Repo(repo_path)
-    repo.git.add(update=True)
-    repo.index.commit(message)
-    """
-    git.Repo.clone_from(url, path)
-    soup = BeautifulSoup(response.text, 'html.parser')
-    return soup.prettify()
