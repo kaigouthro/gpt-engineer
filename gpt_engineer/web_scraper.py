@@ -1,16 +1,25 @@
 import requests
 from bs4 import BeautifulSoup
 
-def scrape_web(url):
+def push_changes(repo_path):
     """
-    Scrape a web page and return its content in a structured format.
+    Push changes in a git repository to the remote repository.
 
     Args:
-        url (str): The URL of the web page to scrape.
+        repo_path (str): The local path of the git repository where changes should be pushed.
 
     Returns:
-        str: The structured content of the web page.
+        None
     """
-    response = requests.get(url)
+    repo = git.Repo(repo_path)
+    origin = repo.remote(name='origin')
+    origin.push()
+        None
+    """
+    repo = git.Repo(repo_path)
+    repo.git.add(update=True)
+    repo.index.commit(message)
+    """
+    git.Repo.clone_from(url, path)
     soup = BeautifulSoup(response.text, 'html.parser')
     return soup.prettify()
