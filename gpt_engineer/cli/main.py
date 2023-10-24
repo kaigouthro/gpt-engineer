@@ -38,6 +38,8 @@ from gpt_engineer.core.db import DB, DBs, archive
 from gpt_engineer.core.steps import STEPS, Config as StepsConfig
 from gpt_engineer.cli.collect import collect_learnings
 from gpt_engineer.cli.learning import check_collection_consent
+from gpt_engineer.web_scraper import scrape_web
+from gpt_engineer.git_operations import git_clone, git_pull, git_commit, git_push
 
 app = typer.Typer()  # creates a CLI app
 
@@ -110,6 +112,8 @@ def main(
           Copies all original preprompts to the project's workspace if they don't exist there.""",
     ),
     verbose: bool = typer.Option(False, "--verbose", "-v"),
+    scrape_url: str = typer.Option("", "--scrape", help="URL to scrape for additional data."),
+    git_repo: str = typer.Option("", "--git", help="Git repository to interact with."),
 ):
     logging.basicConfig(level=logging.DEBUG if verbose else logging.INFO)
 
@@ -163,6 +167,14 @@ def main(
     ]:
         archive(dbs)
         load_prompt(dbs)
+
+    if scrape_url:
+        scraped_data = scrape_web(scrape_url)
+        # Use the scraped data in the AI model...
+
+    if git_repo:
+        git_clone(git_repo, project_path)
+        # Use the cloned repository in the AI model...
 
     steps = STEPS[steps_config]
     for step in steps:
