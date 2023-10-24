@@ -14,7 +14,6 @@ def push_changes(repo_path):
     repo = git.Repo(repo_path)
     origin = repo.remote(name='origin')
     origin.push()
-        None
     """
     repo = git.Repo(repo_path)
     repo.git.add(update=True)
