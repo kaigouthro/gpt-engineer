@@ -1,0 +1,95 @@
+# GPT-Engineer
+GPT-Engineer is an open-source project that leverages the capabilities of OpenAI's GPT-4 model to automate various software engineering tasks. It is designed to interact with the GPT-4 model in a conversational manner, guiding the model to generate code, clarify instructions, generate specifications, and more. The project is built with a modular architecture, making it easy to extend and customize for various use cases.
+
+## Core Components
+GPT-Engineer is composed of several core components that work together to provide its functionality:
+- **AI Class**: The AI class serves as the main interface to the GPT-4 model. It provides methods to start a conversation with the model, continue an existing conversation, and format system and user messages.
+- **DB Class**: The DB class represents a simple database that stores its data as files in a directory. It is a key-value store, where keys are filenames and values are file contents.
+- **Steps Module**: The steps module defines a series of steps that the AI can perform to generate code, clarify instructions, generate specifications, and more. Each step is a function that takes an AI and a set of databases as arguments and returns a list of messages.
+
+## Usage
+GPT-Engineer is designed to be easy to use, even for users without a background in coding. Users can write prompts in plain English, and GPT-Engineer will guide the GPT-4 model to generate the desired output. The generated code is saved as files in a workspace, and can be executed independently of the GPT-Engineer system.
+
+## Development and Community
+GPT-Engineer is an open-source project, and contributions from the community are welcomed and encouraged. The project is hosted on GitHub, where users can report issues, suggest enhancements, and contribute code.
+
+## See Also
+- [User Guide](#user-guide)
+- [AI Class Documentation](#ai-class)
+- [DB Class Documentation](#db-class)
+- [Steps Module Documentation](#steps-module)
+- [Harmony of AI, DB, and Steps](#harmony-of-ai-db-and-steps)
+- [Chat Parsing & Self Code Execution](#chat_to_files.py)
+
+## References
+- [GPT-Engineer GitHub Repository](https://github.com/AntonOsika/gpt-engineer)
+
+
+
+# Repository Overview
+The GPT-Engineer repository is a project developed by Anton Osika, which uses GPT-4 to automate the process of software engineering. The repository is written in Python and is publicly available on GitHub.
+
+## Usage
+There are two ways to work with GPT-engineer: new code mode (the default), and improve existing code mode (the `-i` option).
+
+### Creating new code
+- Create an empty folder for your project anywhere on your computer
+- Create a file called `prompt` (no extension) inside your new folder and fill it with instructions
+- Run `gpt-engineer <project_dir>` with a relative path to your folder
+  - For example: `gpt-engineer projects/my-new-project` from the gpt-engineer directory root with your new folder in `projects/`
+
+### Improving Existing Code
+- Locate a folder with code which you want to improve anywhere on your computer
+- Create a file called `prompt` (no extension) inside your new folder and fill it with instructions for how you want to improve the code
+- Run `gpt-engineer <project_dir> -i` with a relative path to your folder
+  - For example: `gpt-engineer projects/my-old-project` from the gpt-engineer directory root with your folder in `projects/`
+
+## Contributing
+Contributions are welcome. If you want to contribute, please check out the [roadmap](https://github.com/AntonOsika/gpt-engineer/blob/main/ROADMAP.md), [projects](https://github.com/AntonOsika/gpt-engineer/projects?query=is%3Aopen) or [issues tab](https://github.com/AntonOsika/gpt-engineer/issues) in the GitHub repo. You can also join the [Discord](https://discord.gg/4t5vXHhu) for discussions.
+
+
+
+Building Docs with Sphinx
+=========================
+This example shows a basic Sphinx docs project with Read the Docs. This project is using `sphinx` with `readthedocs`
+project template.
+Some useful links are given below to lear and contribute in the project.
+📚 [docs/](https://www.sphinx-doc.org/en/master/usage/quickstart.html)<br>
+A basic Sphinx project lives in `docs/`, it was generated using Sphinx defaults. All the `*.rst` & `*.md` make up sections in the documentation. Both `.rst` and `.md` formats are supported in this project
+⚙️ [.readthedocs.yaml](https://docs.readthedocs.io/en/stable/config-file/v2.html)<br>
+Read the Docs Build configuration is stored in `.readthedocs.yaml`.
+📍 [docs/requirements.txt](https://docs.readthedocs.io/en/stable/config-file/v2.html)<br>
+Python dependencies are [pinned](https://docs.readthedocs.io/en/latest/guides/reproducible-builds.html) (uses [pip-tools](https://pip-tools.readthedocs.io/en/latest/)) here. Make sure to add your Python dependencies to `requirements.txt` or if you choose [pip-tools](https://pip-tools.readthedocs.io/en/latest/), edit `docs/requirements.txt`.
+Example Project usage
+---------------------
+`Poetry` is the package manager for `gpt-engineer`. In order to build documentation, we have to add docs requirements in
+development environment.
+This project has a standard readthedocs layout which is built by Read the Docs almost the same way that you would build it
+locally (on your own laptop!).
+You can build and view this documentation project locally - we recommend that you activate a `poetry` or your choice of `venv`
+and dependency management tool.
+Update `repository_stats.md` file under `docs/intro`
+```console
+# Install required Python dependencies (MkDocs etc.)
+pip install -e .[doc]
+cd docs/
+# Create the `api_reference.rst`
+python create_api_rst.py
+# Build the docs
+make html
+```
+Project Docs Structure
+----------------------
+If you are new to Read the Docs, you may want to refer to the [Read the Docs User documentation](https://docs.readthedocs.io/).
+Below is the rundown of documentation structure for `pandasai`, you need to know:
+1. place your `docs/` folder alongside your Python project.
+2. copy `.readthedocs.yaml` and the `docs/` folder into your project root.
+3. `docs/api_reference.rst` contains the API documentation created using `docstring`.  Run the `create_api_rst.py` to update the API reference file.
+4. Project is using standard Google Docstring Style.
+5. Rebuild the documenation locally to see that it works.
+6. Documentation are hosted on [Read the Docs tutorial](https://docs.readthedocs.io/en/stable/tutorial/)
+Read the Docs tutorial
+----------------------
+To get started with Read the Docs, you may also refer to the
+[Read the Docs tutorial](https://docs.readthedocs.io/en/stable/tutorial/). I
+With every release, build the documentation manually.
