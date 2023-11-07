@@ -36,6 +36,7 @@ Functions:
 - get_improve_prompt(ai: AI, dbs: FileRepositories): Interacts with the user to know what they want to fix in existing code.
 - improve_existing_code(ai: AI, dbs: FileRepositories): Generates improved code after getting the file list and user prompt.
 - human_review(ai: AI, dbs: FileRepositories): Collects and stores human review of the generated code.
+- load_and_parse_docs(ai: AI, dbs: FileRepositories) -> List[Message]: Loads and parses the Markdown documentation.
 
 Constants:
 - STEPS: A dictionary that maps the Config enum to lists of functions to execute for each configuration.
@@ -48,6 +49,7 @@ Note:
 import inspect
 import re
 import subprocess
+import os
 
 from enum import Enum
 from platform import platform
@@ -75,18 +77,6 @@ ASSUME_WORKING_TIMEOUT = 30
 
 # Type hint for chat messages
 Message = Union[AIMessage, HumanMessage, SystemMessage]
-
-
-def get_platform_info():
-    """Returns the Platform: OS, and the Python version.
-    This is used for self healing.  There are some possible areas of conflict here if
-    you use a different version of Python in your virtualenv.  A better solution would
-    be to have this info printed from the virtualenv.
-    """
-    v = version_info
-    a = f"Python Version: {v.major}.{v.minor}.{v.micro}"
-    b = f"\nOS: {platform()}\n"
-    return a + b
 
 
 def get_platform_info():
@@ -282,9 +272,9 @@ def gen_clarified_code(ai: AI, dbs: FileRepositories) -> List[dict]:
     The generated code is saved to a specified workspace.
 
     Parameters:
-    - ai (AI): An instance of the AI model, responsible for processing and generating the code.
-    - dbs (DBs): An instance containing the database configurations, which includes system
-      and input prompts.
+    - ai (AI): An instance of the AI model.
+    - dbs (DBs): An instance containing the database configurations, including system and
+      input prompts, and file formatting preferences.
 
     Returns:
     - List[dict]: A list of message dictionaries capturing the AI's interactions and generated
@@ -317,8 +307,7 @@ def execute_entrypoint(ai: AI, dbs: FileRepositories) -> List[dict]:
     execution at any time using ctrl+c.
 
     Parameters:
-    - ai (AI): An instance of the AI model, not directly used in this function but
-      included for consistency with other functions.
+    - ai (AI): An instance of the AI model.
     - dbs (DBs): An instance containing the database configurations and workspace
       information.
 
@@ -389,7 +378,8 @@ def gen_entrypoint(ai: AI, dbs: FileRepositories) -> List[dict]:
       codebase on disk.
 
     Returns:
-    - List[dict]: A list of messages containing the AI's response.
+    - List[dict]: A list of message dictionaries capturing the AI's interactions and generated
+      outputs during the code generation process.
 
     Notes:
     - The AI is instructed not to install packages globally, use 'sudo', provide
@@ -436,16 +426,13 @@ def use_feedback(ai: AI, dbs: FileRepositories):
 
     Parameters:
     - ai (AI): An instance of the AI model.
-    - dbs (DBs): An instance containing the database configurations and workspace
-      information, particularly the 'all_output.txt' which contains the previously
-      generated code, and 'input' which may contain the feedback from the user.
+    - dbs (DBs): An instance containing the database configurations, user prompts, project metadata,
+      and memory storage. This function specifically interacts with the memory storage to save the human review.
 
     Notes:
-    - The function assumes the feedback will be found in 'dbs.input["feedback"]'.
-    - If feedback is provided, the AI processes it and the resulting code is saved
-      back to the workspace.
-    - If feedback is absent, an instruction is printed to the console, and the program
-      terminates.
+    - It's assumed that the `human_review_input` function handles all the interactions with the user to
+      gather feedback and returns either the feedback or None if no feedback was provided.
+    - Ensure that the database's memory has enough space or is set up correctly to store the serialized review data.
     """
     messages = [
         SystemMessage(content=setup_sys_prompt(dbs)),
@@ -654,183 +641,22 @@ def human_review(ai: AI, dbs: FileRepositories):
     memory under the "review" key.
 
     Parameters:
-    - ai (AI): An instance of the AI model. Although not directly used within the function, it is kept as
-      a parameter for consistency with other functions.
-    - dbs (DBs): An instance containing the database configurations, user prompts, project metadata,
-      and memory storage. This function specifically interacts with the memory storage to save the human review.
+    - ai (AI): An instance of the AI model. Although not directly used within the function,
+      it is passed as a parameter for consistency with other function signatures.
+    - dbs (DBs): An instance containing the database configurations, user prompts, and project metadata.
+      It is used to fetch the selected files for improvement and the user's improvement prompt.
 
     Returns:
-    - list: Returns an empty list, indicating that there's no subsequent interaction with the LLM
-      or no further messages to be processed.
+    - list: Returns an empty list, which can be utilized for consistency in return
+      types across related functions.
 
     Notes:
-    - It's assumed that the `human_review_input` function handles all the interactions with the user to
+    - The function assumes that the `human_review_input` function handles all the interactions with the user to
       gather feedback and returns either the feedback or None if no feedback was provided.
     - Ensure that the database's memory has enough space or is set up correctly to store the serialized review data.
     """
-
-    """Collects and stores human review of the code"""
-    review = human_review_input()
-    if review is not None:
-        dbs.memory["review"] = review.to_json()  # type: ignore
+    review = human_review_input(dbs.workspace.path)
+    if review:
+        dbs.memory["review"] = review.to_json()
     return []
-
-
-def self_heal(ai: AI, dbs: FileRepositories):
-    """Attempts to execute the code from the entrypoint and if it fails,
-    sends the error output back to the AI with instructions to fix.
-    This code will make `MAX_SELF_HEAL_ATTEMPTS` to try and fix the code
-    before giving up.
-    This makes the assuption that the previous step was `gen_entrypoint`,
-    this code could work with `simple_gen`, or `gen_clarified_code` as well.
-    """
-
-    # step 1. execute the entrypoint
-    log_path = dbs.workspace.path / "log.txt"
-
-    attempts = 0
-    messages = []
-
-    while attempts < MAX_SELF_HEAL_ATTEMPTS:
-        log_file = open(log_path, "w")  # wipe clean on every iteration
-        timed_out = False
-
-        p = subprocess.Popen(  # attempt to run the entrypoint
-            "bash run.sh",
-            shell=True,
-            cwd=dbs.workspace.path,
-            stdout=log_file,
-            stderr=log_file,
-            bufsize=0,
-        )
-        try:  # timeout if the process actually runs
-            p.wait(timeout=ASSUME_WORKING_TIMEOUT)
-        except subprocess.TimeoutExpired:
-            timed_out = True
-            print("The process hit a timeout before exiting.")
-
-        # get the result and output
-        # step 2. if the return code not 0, package and send to the AI
-        if p.returncode != 0 and not timed_out:
-            print("run.sh failed.  Let's fix it.")
-
-            # pack results in an AI prompt
-
-            # Using the log from the previous step has all the code and
-            # the gen_entrypoint prompt inside.
-            if attempts < 1:
-                messages = AI.deserialize_messages(dbs.logs[gen_entrypoint.__name__])
-                messages.append(ai.fuser(get_platform_info()))  # add in OS and Py version
-
-            # append the error message
-            messages.append(ai.fuser(dbs.workspace["log.txt"]))
-
-            messages = ai.next(
-                messages, dbs.preprompts["file_format_fix"], step_name=curr_fn()
-            )
-        else:  # the process did not fail, we are done here.
-            return messages
-
-        log_file.close()
-
-        # this overwrites the existing files
-        to_files_and_memory(messages[-1].content.strip(), dbs)
-        attempts += 1
-
-    return messages
-
-
-class Config(str, Enum):
-    """
-    Enumeration representing different configuration modes for the code processing system.
-
-    Members:
-    - DEFAULT: Standard procedure for generating, executing, and reviewing code.
-    - BENCHMARK: Used for benchmarking the system's performance without execution.
-    - SIMPLE: A basic procedure involving generation, execution, and review.
-    - LITE: A lightweight procedure for generating code without further processing.
-    - CLARIFY: Process that starts with clarifying ambiguities before code generation.
-    - EXECUTE_ONLY: Only executes the code without generation.
-    - EVALUATE: Execute the code and then undergo a human review.
-    - USE_FEEDBACK: Uses prior feedback for code generation and subsequent steps.
-    - IMPROVE_CODE: Focuses on improving existing code based on a provided prompt.
-    - EVAL_IMPROVE_CODE: Validates files and improves existing code.
-    - EVAL_NEW_CODE: Evaluates newly generated code without further steps.
-
-    Each configuration mode dictates the sequence and type of operations performed on the code.
-    """
-
-    DEFAULT = "default"
-    BENCHMARK = "benchmark"
-    SIMPLE = "simple"
-    LITE = "lite"
-    CLARIFY = "clarify"
-    EXECUTE_ONLY = "execute_only"
-    EVALUATE = "evaluate"
-    USE_FEEDBACK = "use_feedback"
-    IMPROVE_CODE = "improve_code"
-    EVAL_IMPROVE_CODE = "eval_improve_code"
-    EVAL_NEW_CODE = "eval_new_code"
-    VECTOR_IMPROVE = "vector_improve"
-    SELF_HEAL = "self_heal"
-
-
-STEPS = {
-    Config.DEFAULT: [
-        simple_gen,
-        gen_entrypoint,
-        execute_entrypoint,
-        human_review,
-    ],
-    Config.LITE: [
-        lite_gen,
-    ],
-    Config.CLARIFY: [
-        clarify,
-        gen_clarified_code,
-        gen_entrypoint,
-        execute_entrypoint,
-        human_review,
-    ],
-    Config.BENCHMARK: [
-        simple_gen,
-        gen_entrypoint,
-    ],
-    Config.SIMPLE: [
-        simple_gen,
-        gen_entrypoint,
-        execute_entrypoint,
-    ],
-    Config.USE_FEEDBACK: [use_feedback, gen_entrypoint, execute_entrypoint, human_review],
-    Config.EXECUTE_ONLY: [execute_entrypoint],
-    Config.EVALUATE: [execute_entrypoint, human_review],
-    Config.IMPROVE_CODE: [
-        set_improve_filelist,
-        get_improve_prompt,
-        improve_existing_code,
-    ],
-    Config.VECTOR_IMPROVE: [vector_improve],
-    Config.EVAL_IMPROVE_CODE: [assert_files_ready, improve_existing_code],
-    Config.EVAL_NEW_CODE: [simple_gen],
-    Config.SELF_HEAL: [self_heal],
-}
 """
-A dictionary mapping Config modes to a list of associated processing steps.
-
-The STEPS dictionary dictates the sequence of functions or operations to be
-performed based on the selected configuration mode from the Config enumeration.
-This enables a flexible system where the user can select the desired mode and
-the system can execute the corresponding steps in sequence.
-
-Examples:
-- For Config.DEFAULT, the system will first generate the code using `simple_gen`,
-  then generate the entry point with `gen_entrypoint`, execute the generated
-  code using `execute_entrypoint`, and finally collect human review using `human_review`.
-- For Config.LITE, the system will only use the `lite_gen` function to generate the code.
-
-This setup allows for modularity and flexibility in handling different user requirements and scenarios.
-"""
-
-# Future steps that can be added:
-# run_tests_and_fix_files
-# execute_entrypoint_and_fix_files_if_it_results_in_error
