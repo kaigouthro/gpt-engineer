@@ -500,9 +500,10 @@ def vector_improve(ai: AI, dbs: FileRepositories):
     code_vector_repository.load_from_directory(dbs.workspace.path)
     releventDocuments = code_vector_repository.relevent_code_chunks(dbs.input["prompt"])
 
-    code_file_list = f"Here is a list of all the existing code files present in the root directory your code will be added to:"
-    code_file_list += "\n {fileRepositories.workspace.to_path_list_string()}"
-
+    code_file_list = (
+        "Here is a list of all the existing code files present in the root directory your code will be added to:"
+        + "\n {fileRepositories.workspace.to_path_list_string()}"
+    )
     relevent_file_contents = f"Here are files relevent to the query which you may like to change, reference or add to \n"
 
     for doc in releventDocuments:
@@ -692,26 +693,26 @@ def self_heal(ai: AI, dbs: FileRepositories):
     messages = []
 
     while attempts < MAX_SELF_HEAL_ATTEMPTS:
-        log_file = open(log_path, "w")  # wipe clean on every iteration
-        timed_out = False
+        with open(log_path, "w") as log_file:
+            timed_out = False
 
-        p = subprocess.Popen(  # attempt to run the entrypoint
-            "bash run.sh",
-            shell=True,
-            cwd=dbs.workspace.path,
-            stdout=log_file,
-            stderr=log_file,
-            bufsize=0,
-        )
-        try:  # timeout if the process actually runs
-            p.wait(timeout=ASSUME_WORKING_TIMEOUT)
-        except subprocess.TimeoutExpired:
-            timed_out = True
-            print("The process hit a timeout before exiting.")
+            p = subprocess.Popen(  # attempt to run the entrypoint
+                "bash run.sh",
+                shell=True,
+                cwd=dbs.workspace.path,
+                stdout=log_file,
+                stderr=log_file,
+                bufsize=0,
+            )
+            try:  # timeout if the process actually runs
+                p.wait(timeout=ASSUME_WORKING_TIMEOUT)
+            except subprocess.TimeoutExpired:
+                timed_out = True
+                print("The process hit a timeout before exiting.")
 
-        # get the result and output
-        # step 2. if the return code not 0, package and send to the AI
-        if p.returncode != 0 and not timed_out:
+            if p.returncode == 0 or timed_out:
+                return messages
+
             print("run.sh failed.  Let's fix it.")
 
             # pack results in an AI prompt
@@ -728,11 +729,6 @@ def self_heal(ai: AI, dbs: FileRepositories):
             messages = ai.next(
                 messages, dbs.preprompts["file_format_fix"], step_name=curr_fn()
             )
-        else:  # the process did not fail, we are done here.
-            return messages
-
-        log_file.close()
-
         # this overwrites the existing files
         to_files_and_memory(messages[-1].content.strip(), dbs)
         attempts += 1

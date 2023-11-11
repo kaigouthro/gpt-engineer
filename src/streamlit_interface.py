@@ -36,7 +36,7 @@ def main():
         else:
             st.write('GPT Engineer has finished.')
     except Exception as e:
-        st.error('An error occurred: ' + str(e))
+        st.error(f'An error occurred: {str(e)}')
 
 # Run the Streamlit interface in a separate process.
 if __name__ == "__main__":

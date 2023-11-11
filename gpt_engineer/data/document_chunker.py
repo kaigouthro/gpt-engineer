@@ -62,9 +62,7 @@ class CodeSplitter(TextSplitter):
         tree = parser.parse(bytes(text, "utf-8"))
 
         if not tree.root_node.children or tree.root_node.children[0].type != "ERROR":
-            chunks = [chunk.strip() for chunk in self._chunk_node(tree.root_node, text)]
-
-            return chunks
+            return [chunk.strip() for chunk in self._chunk_node(tree.root_node, text)]
         else:
             raise ValueError(f"Could not parse code with language {self.language}.")
 
@@ -75,10 +73,10 @@ class SortedDocuments(NamedTuple):
 
 
 class DocumentChunker:
-    def chunk_documents(documents: List[Document]) -> List[Document]:
+    def chunk_documents(self) -> List[Document]:
         chunked_documents = []
 
-        sorted_documents = _sort_documents_by_programming_language_or_other(documents)
+        sorted_documents = _sort_documents_by_programming_language_or_other(self)
 
         for language, language_documents in sorted_documents.by_language.items():
             code_splitter = CodeSplitter(

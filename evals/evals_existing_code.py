@@ -80,10 +80,7 @@ def single_evaluate(eval_ob: dict) -> list[bool]:
 
 
 def run_all_evaluations(eval_list: list[dict]) -> None:
-    results = []
-    for eval_ob in eval_list:
-        results.append(single_evaluate(eval_ob))
-
+    results = [single_evaluate(eval_ob) for eval_ob in eval_list]
     # Step 4. Generate Report
     generate_report(eval_list, results, "evals/IMPROVE_CODE_RESULTS.md")
 

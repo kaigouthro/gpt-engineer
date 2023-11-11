@@ -141,19 +141,14 @@ def to_emoji(value: bool) -> str:
 
 
 def generate_report(evals: list[dict], res: list[list[bool]], report_path: str) -> None:
-    # High level shows if all the expected_results passed
-    # Detailed shows all the test cases and a pass/fail for each
-    output_lines = []
     current_date = datetime.now().strftime("%Y-%m-%d")
-    output_lines.append(f"## {current_date}\n\n")
-
+    output_lines = [f"## {current_date}\n\n"]
     # Create a summary table
     headers = ["Project", "Evaluation", "All Tests Pass"]
-    rows = []
-    for i, eval_ob in enumerate(evals):
-        rows.append(
-            [eval_ob["project_root"], eval_ob["name"], to_emoji(all(res[i]))]
-        )  # logical AND of all tests
+    rows = [
+        [eval_ob["project_root"], eval_ob["name"], to_emoji(all(res[i]))]
+        for i, eval_ob in enumerate(evals)
+    ]
     table: str = tabulate(rows, headers, tablefmt="pipe")
     title = "Existing Code Evaluation Summary:"
     print(f"\n{title}\n")
@@ -165,15 +160,15 @@ def generate_report(evals: list[dict], res: list[list[bool]], report_path: str) 
     headers = ["Project", "Evaluation", "Test", "Pass"]
     rows = []
     for i, eval_ob in enumerate(evals):
-        for j, test in enumerate(eval_ob["expected_results"]):
-            rows.append(
-                [
-                    eval_ob["project_root"],
-                    eval_ob["name"],
-                    eval_ob["expected_results"][j]["type"],
-                    to_emoji(res[i][j]),
-                ]
-            )
+        rows.extend(
+            [
+                eval_ob["project_root"],
+                eval_ob["name"],
+                eval_ob["expected_results"][j]["type"],
+                to_emoji(res[i][j]),
+            ]
+            for j, test in enumerate(eval_ob["expected_results"])
+        )
     detail_table: str = tabulate(rows, headers, tablefmt="pipe")
     title = "Detailed Test Results:"
     print(f"\n{title} \n")
