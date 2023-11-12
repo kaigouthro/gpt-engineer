@@ -1,4 +1,5 @@
 from typing import Dict, List
+# Path class from pathlib module is used for handling and manipulating filesystem paths in a way that is compatible with different operating systems.
 from pathlib import Path
 
 from llama_index import VectorStoreIndex, SimpleDirectoryReader
