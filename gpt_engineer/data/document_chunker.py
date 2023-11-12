@@ -75,10 +75,11 @@ class SortedDocuments(NamedTuple):
 
 
 class DocumentChunker:
+    @staticmethod
     def chunk_documents(documents: List[Document]) -> List[Document]:
         chunked_documents = []
 
-        sorted_documents = _sort_documents_by_programming_language_or_other(documents)
+        sorted_documents = DocumentChunker._sort_documents_by_programming_language_or_other(documents)
 
         for language, language_documents in sorted_documents.by_language.items():
             code_splitter = CodeSplitter(
@@ -95,30 +96,35 @@ class DocumentChunker:
 
         return chunked_documents
 
+    @staticmethod
+    def _sort_documents_by_programming_language_or_other(
+        documents: List[Document],
+    ) -> SortedDocuments:
+        docs_to_split = defaultdict(list)
+        other_docs = []
 
-@staticmethod
-def _sort_documents_by_programming_language_or_other(
-    documents: List[Document],
-) -> SortedDocuments:
-    docs_to_split = defaultdict(list)
-    other_docs = []
+        for doc in documents:
+            filename = str(doc.metadata.get("filename"))
+            extension = Path(filename).suffix
+            language_found = False
 
-    for doc in documents:
-        filename = str(doc.metadata.get("filename"))
-        extension = Path(filename).suffix
-        language_found = False
+            for lang in SUPPORTED_LANGUAGES:
+                if extension in lang["extensions"]:
+                    doc.metadata["is_code"] = True
+                    doc.metadata["code_language"] = lang["name"]
+                    doc.metadata["code_language_tree_sitter_name"] = lang["tree_sitter_name"]
+                    docs_to_split[lang["tree_sitter_name"]].append(doc)
+                    language_found = True
+                    break
 
-        for lang in SUPPORTED_LANGUAGES:
-            if extension in lang["extensions"]:
-                doc.metadata["is_code"] = True
-                doc.metadata["code_language"] = lang["name"]
-                doc.metadata["code_language_tree_sitter_name"] = lang["tree_sitter_name"]
-                docs_to_split[lang["tree_sitter_name"]].append(doc)
-                language_found = True
-                break
+            if not language_found:
+                doc.metadata["isCode"] = False
+                other_docs.append(doc)
 
-        if not language_found:
-            doc.metadata["isCode"] = False
-            other_docs.append(doc)
+        return SortedDocuments(by_language=dict(docs_to_split), other=other_docs)
 
-    return SortedDocuments(by_language=dict(docs_to_split), other=other_docs)
+# Load the Markdown documents
+markdown_files = []  # This should be replaced with the actual loading of the Markdown files
+
+# Call the chunk_documents method with the loaded Markdown documents
+chunked_documents = DocumentChunker.chunk_documents(markdown_files)

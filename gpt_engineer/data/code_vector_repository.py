@@ -1,4 +1,5 @@
 from typing import Dict, List
+from pathlib import Path
 
 from llama_index import VectorStoreIndex, SimpleDirectoryReader
 from llama_index import Document, ServiceContext
@@ -20,8 +21,21 @@ class CodeVectorRepository:
 
         excluded_file_globs = ["*/.gpteng/*"]
 
+        directory = Path(directory_path)
+
+        markdown_files = [
+            str(item)
+            for item in sorted(directory.rglob("*"))
+            if item.is_file() and item.suffix == ".md"
+        ]
+
         return SimpleDirectoryReader(
             directory_path,
+            recursive=True,
+            exclude=excluded_file_globs,
+            file_metadata=name_metadata_storer,
+        ).load_data() + SimpleDirectoryReader(
+            markdown_files,
             recursive=True,
             exclude=excluded_file_globs,
             file_metadata=name_metadata_storer,
