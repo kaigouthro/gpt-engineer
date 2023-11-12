@@ -36,6 +36,7 @@ Functions:
 - get_improve_prompt(ai: AI, dbs: FileRepositories): Interacts with the user to know what they want to fix in existing code.
 - improve_existing_code(ai: AI, dbs: FileRepositories): Generates improved code after getting the file list and user prompt.
 - human_review(ai: AI, dbs: FileRepositories): Collects and stores human review of the generated code.
+- load_and_parse_docs(ai: AI, dbs: FileRepositories) -> List[Message]: Loads and parses the Markdown documentation.
 
 Constants:
 - STEPS: A dictionary that maps the Config enum to lists of functions to execute for each configuration.
@@ -48,6 +49,7 @@ Note:
 import inspect
 import re
 import subprocess
+import os
 
 from enum import Enum
 from platform import platform
@@ -75,18 +77,6 @@ ASSUME_WORKING_TIMEOUT = 30
 
 # Type hint for chat messages
 Message = Union[AIMessage, HumanMessage, SystemMessage]
-
-
-def get_platform_info():
-    """Returns the Platform: OS, and the Python version.
-    This is used for self healing.  There are some possible areas of conflict here if
-    you use a different version of Python in your virtualenv.  A better solution would
-    be to have this info printed from the virtualenv.
-    """
-    v = version_info
-    a = f"Python Version: {v.major}.{v.minor}.{v.micro}"
-    b = f"\nOS: {platform()}\n"
-    return a + b
 
 
 def get_platform_info():
@@ -282,9 +272,9 @@ def gen_clarified_code(ai: AI, dbs: FileRepositories) -> List[dict]:
     The generated code is saved to a specified workspace.
 
     Parameters:
-    - ai (AI): An instance of the AI model, responsible for processing and generating the code.
-    - dbs (DBs): An instance containing the database configurations, which includes system
-      and input prompts.
+    - ai (AI): An instance of the AI model.
+    - dbs (DBs): An instance containing the database configurations, including system and
+      input prompts, and file formatting preferences.
 
     Returns:
     - List[dict]: A list of message dictionaries capturing the AI's interactions and generated
@@ -317,8 +307,7 @@ def execute_entrypoint(ai: AI, dbs: FileRepositories) -> List[dict]:
     execution at any time using ctrl+c.
 
     Parameters:
-    - ai (AI): An instance of the AI model, not directly used in this function but
-      included for consistency with other functions.
+    - ai (AI): An instance of the AI model.
     - dbs (DBs): An instance containing the database configurations and workspace
       information.
 
@@ -389,7 +378,8 @@ def gen_entrypoint(ai: AI, dbs: FileRepositories) -> List[dict]:
       codebase on disk.
 
     Returns:
-    - List[dict]: A list of messages containing the AI's response.
+    - List[dict]: A list of message dictionaries capturing the AI's interactions and generated
+      outputs during the code generation process.
 
     Notes:
     - The AI is instructed not to install packages globally, use 'sudo', provide
@@ -436,16 +426,13 @@ def use_feedback(ai: AI, dbs: FileRepositories):
 
     Parameters:
     - ai (AI): An instance of the AI model.
-    - dbs (DBs): An instance containing the database configurations and workspace
-      information, particularly the 'all_output.txt' which contains the previously
-      generated code, and 'input' which may contain the feedback from the user.
+    - dbs (DBs): An instance containing the database configurations, user prompts, project metadata,
+      and memory storage. This function specifically interacts with the memory storage to save the human review.
 
     Notes:
-    - The function assumes the feedback will be found in 'dbs.input["feedback"]'.
-    - If feedback is provided, the AI processes it and the resulting code is saved
-      back to the workspace.
-    - If feedback is absent, an instruction is printed to the console, and the program
-      terminates.
+    - It's assumed that the `human_review_input` function handles all the interactions with the user to
+      gather feedback and returns either the feedback or None if no feedback was provided.
+    - Ensure that the database's memory has enough space or is set up correctly to store the serialized review data.
     """
     messages = [
         SystemMessage(content=setup_sys_prompt(dbs)),
@@ -655,25 +642,23 @@ def human_review(ai: AI, dbs: FileRepositories):
     memory under the "review" key.
 
     Parameters:
-    - ai (AI): An instance of the AI model. Although not directly used within the function, it is kept as
-      a parameter for consistency with other functions.
-    - dbs (DBs): An instance containing the database configurations, user prompts, project metadata,
-      and memory storage. This function specifically interacts with the memory storage to save the human review.
+    - ai (AI): An instance of the AI model. Although not directly used within the function,
+      it is passed as a parameter for consistency with other function signatures.
+    - dbs (DBs): An instance containing the database configurations, user prompts, and project metadata.
+      It is used to fetch the selected files for improvement and the user's improvement prompt.
 
     Returns:
-    - list: Returns an empty list, indicating that there's no subsequent interaction with the LLM
-      or no further messages to be processed.
+    - list: Returns an empty list, which can be utilized for consistency in return
+      types across related functions.
 
     Notes:
-    - It's assumed that the `human_review_input` function handles all the interactions with the user to
+    - The function assumes that the `human_review_input` function handles all the interactions with the user to
       gather feedback and returns either the feedback or None if no feedback was provided.
     - Ensure that the database's memory has enough space or is set up correctly to store the serialized review data.
     """
-
-    """Collects and stores human review of the code"""
-    review = human_review_input()
-    if review is not None:
-        dbs.memory["review"] = review.to_json()  # type: ignore
+    review = human_review_input(dbs.workspace.path)
+    if review:
+        dbs.memory["review"] = review.to_json()
     return []
 
 

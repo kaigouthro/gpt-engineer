@@ -12,6 +12,12 @@ GPT-Engineer is composed of several core components that work together to provid
 
 - **Steps Module**: The steps module defines a series of steps that the AI can perform to generate code, clarify instructions, generate specifications, and more. Each step is a function that takes an AI and a set of databases as arguments and returns a list of messages.
 
+## System Diagram
+
+The following diagram illustrates the interaction between the core components of the GPT-Engineer system and how they work together to generate code:
+
+![GPT-Engineer System Diagram](path_to_diagram.png)
+
 ## Usage
 
 GPT-Engineer is designed to be easy to use, even for users without a background in coding. Users can write prompts in plain English, and GPT-Engineer will guide the GPT-4 model to generate the desired output. The generated code is saved as files in a workspace, and can be executed independently of the GPT-Engineer system.
