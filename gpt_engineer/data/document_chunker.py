@@ -77,6 +77,18 @@ class SortedDocuments(NamedTuple):
 class DocumentChunker:
     @staticmethod
     def chunk_documents(documents: List[Document]) -> List[Document]:
+        """
+        This method chunks the given documents into smaller parts.
+        
+        It sorts the documents by programming language, then uses a CodeSplitter to split each document into chunks.
+        The method returns a list of these chunked documents.
+        
+        Parameters:
+        documents (List[Document]): A list of documents to be chunked.
+
+        Returns:
+        List[Document]: A list of chunked documents.
+        """
         chunked_documents = []
 
         sorted_documents = DocumentChunker._sort_documents_by_programming_language_or_other(documents)
