@@ -28,13 +28,13 @@ def test_archive(tmp_path, monkeypatch):
     dbs = setup_dbs(
         tmp_path,
         [
-            gpteng_dir + "/memory",
-            gpteng_dir + "/logs",
-            gpteng_dir + "/preprompts",
-            gpteng_dir + "/input",
-            "",  # workspace is top-level folder
-            gpteng_dir + "/archive",
-            gpteng_dir + "/project_metadata",
+            f"{gpteng_dir}/memory",
+            f"{gpteng_dir}/logs",
+            f"{gpteng_dir}/preprompts",
+            f"{gpteng_dir}/input",
+            "",
+            f"{gpteng_dir}/archive",
+            f"{gpteng_dir}/project_metadata",
         ],
     )
     freeze_at(monkeypatch, datetime.datetime(2020, 12, 25, 17, 5, 55))
@@ -45,13 +45,13 @@ def test_archive(tmp_path, monkeypatch):
     dbs = setup_dbs(
         tmp_path,
         [
-            gpteng_dir + "/memory",
-            gpteng_dir + "/logs",
-            gpteng_dir + "/preprompts",
-            gpteng_dir + "/input",
-            "",  # workspace is top-level folder
-            gpteng_dir + "/archive",
-            gpteng_dir + "/project_metadata",
+            f"{gpteng_dir}/memory",
+            f"{gpteng_dir}/logs",
+            f"{gpteng_dir}/preprompts",
+            f"{gpteng_dir}/input",
+            "",
+            f"{gpteng_dir}/archive",
+            f"{gpteng_dir}/project_metadata",
         ],
     )
     freeze_at(monkeypatch, datetime.datetime(2022, 8, 14, 8, 5, 12))

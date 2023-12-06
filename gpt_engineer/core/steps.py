@@ -487,9 +487,10 @@ def vector_improve(ai: AI, dbs: FileRepositories):
     code_vector_repository.load_from_directory(dbs.workspace.path)
     releventDocuments = code_vector_repository.relevent_code_chunks(dbs.input["prompt"])
 
-    code_file_list = f"Here is a list of all the existing code files present in the root directory your code will be added to:"
-    code_file_list += "\n {fileRepositories.workspace.to_path_list_string()}"
-
+    code_file_list = (
+        "Here is a list of all the existing code files present in the root directory your code will be added to:"
+        + "\n {fileRepositories.workspace.to_path_list_string()}"
+    )
     relevent_file_contents = f"Here are files relevent to the query which you may like to change, reference or add to \n"
 
     for doc in releventDocuments:
@@ -659,4 +660,158 @@ def human_review(ai: AI, dbs: FileRepositories):
     if review:
         dbs.memory["review"] = review.to_json()
     return []
+
+
+def self_heal(ai: AI, dbs: FileRepositories):
+    """Attempts to execute the code from the entrypoint and if it fails,
+    sends the error output back to the AI with instructions to fix.
+    This code will make `MAX_SELF_HEAL_ATTEMPTS` to try and fix the code
+    before giving up.
+    This makes the assuption that the previous step was `gen_entrypoint`,
+    this code could work with `simple_gen`, or `gen_clarified_code` as well.
+    """
+
+    # step 1. execute the entrypoint
+    log_path = dbs.workspace.path / "log.txt"
+
+    attempts = 0
+    messages = []
+
+    while attempts < MAX_SELF_HEAL_ATTEMPTS:
+        with open(log_path, "w") as log_file:
+            timed_out = False
+
+            p = subprocess.Popen(  # attempt to run the entrypoint
+                "bash run.sh",
+                shell=True,
+                cwd=dbs.workspace.path,
+                stdout=log_file,
+                stderr=log_file,
+                bufsize=0,
+            )
+            try:  # timeout if the process actually runs
+                p.wait(timeout=ASSUME_WORKING_TIMEOUT)
+            except subprocess.TimeoutExpired:
+                timed_out = True
+                print("The process hit a timeout before exiting.")
+
+            if p.returncode == 0 or timed_out:
+                return messages
+
+            print("run.sh failed.  Let's fix it.")
+
+            # pack results in an AI prompt
+
+            # Using the log from the previous step has all the code and
+            # the gen_entrypoint prompt inside.
+            if attempts < 1:
+                messages = AI.deserialize_messages(dbs.logs[gen_entrypoint.__name__])
+                messages.append(ai.fuser(get_platform_info()))  # add in OS and Py version
+
+            # append the error message
+            messages.append(ai.fuser(dbs.workspace["log.txt"]))
+
+            messages = ai.next(
+                messages, dbs.preprompts["file_format_fix"], step_name=curr_fn()
+            )
+        # this overwrites the existing files
+        to_files_and_memory(messages[-1].content.strip(), dbs)
+        attempts += 1
+
+    return messages
+
+
+class Config(str, Enum):
+    """
+    Enumeration representing different configuration modes for the code processing system.
+
+    Members:
+    - DEFAULT: Standard procedure for generating, executing, and reviewing code.
+    - BENCHMARK: Used for benchmarking the system's performance without execution.
+    - SIMPLE: A basic procedure involving generation, execution, and review.
+    - LITE: A lightweight procedure for generating code without further processing.
+    - CLARIFY: Process that starts with clarifying ambiguities before code generation.
+    - EXECUTE_ONLY: Only executes the code without generation.
+    - EVALUATE: Execute the code and then undergo a human review.
+    - USE_FEEDBACK: Uses prior feedback for code generation and subsequent steps.
+    - IMPROVE_CODE: Focuses on improving existing code based on a provided prompt.
+    - EVAL_IMPROVE_CODE: Validates files and improves existing code.
+    - EVAL_NEW_CODE: Evaluates newly generated code without further steps.
+
+    Each configuration mode dictates the sequence and type of operations performed on the code.
+    """
+
+    DEFAULT = "default"
+    BENCHMARK = "benchmark"
+    SIMPLE = "simple"
+    LITE = "lite"
+    CLARIFY = "clarify"
+    EXECUTE_ONLY = "execute_only"
+    EVALUATE = "evaluate"
+    USE_FEEDBACK = "use_feedback"
+    IMPROVE_CODE = "improve_code"
+    EVAL_IMPROVE_CODE = "eval_improve_code"
+    EVAL_NEW_CODE = "eval_new_code"
+    VECTOR_IMPROVE = "vector_improve"
+    SELF_HEAL = "self_heal"
+
+
+STEPS = {
+    Config.DEFAULT: [
+        simple_gen,
+        gen_entrypoint,
+        execute_entrypoint,
+        human_review,
+    ],
+    Config.LITE: [
+        lite_gen,
+    ],
+    Config.CLARIFY: [
+        clarify,
+        gen_clarified_code,
+        gen_entrypoint,
+        execute_entrypoint,
+        human_review,
+    ],
+    Config.BENCHMARK: [
+        simple_gen,
+        gen_entrypoint,
+    ],
+    Config.SIMPLE: [
+        simple_gen,
+        gen_entrypoint,
+        execute_entrypoint,
+    ],
+    Config.USE_FEEDBACK: [use_feedback, gen_entrypoint, execute_entrypoint, human_review],
+    Config.EXECUTE_ONLY: [execute_entrypoint],
+    Config.EVALUATE: [execute_entrypoint, human_review],
+    Config.IMPROVE_CODE: [
+        set_improve_filelist,
+        get_improve_prompt,
+        improve_existing_code,
+    ],
+    Config.VECTOR_IMPROVE: [vector_improve],
+    Config.EVAL_IMPROVE_CODE: [assert_files_ready, improve_existing_code],
+    Config.EVAL_NEW_CODE: [simple_gen],
+    Config.SELF_HEAL: [self_heal],
+}
 """
+A dictionary mapping Config modes to a list of associated processing steps.
+
+The STEPS dictionary dictates the sequence of functions or operations to be
+performed based on the selected configuration mode from the Config enumeration.
+This enables a flexible system where the user can select the desired mode and
+the system can execute the corresponding steps in sequence.
+
+Examples:
+- For Config.DEFAULT, the system will first generate the code using `simple_gen`,
+  then generate the entry point with `gen_entrypoint`, execute the generated
+  code using `execute_entrypoint`, and finally collect human review using `human_review`.
+- For Config.LITE, the system will only use the `lite_gen` function to generate the code.
+
+This setup allows for modularity and flexibility in handling different user requirements and scenarios.
+"""
+
+# Future steps that can be added:
+# run_tests_and_fix_files
+# execute_entrypoint_and_fix_files_if_it_results_in_error

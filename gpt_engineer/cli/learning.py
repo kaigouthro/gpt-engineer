@@ -111,7 +111,7 @@ def human_review_input() -> Review:
     )
     print()
 
-    ran = input("Did the generated code run at all? " + TERM_CHOICES)
+    ran = input(f"Did the generated code run at all? {TERM_CHOICES}")
     while ran not in ("y", "n", "u"):
         ran = input("Invalid input. Please enter y, n, or u: ")
 
@@ -120,13 +120,13 @@ def human_review_input() -> Review:
 
     if ran == "y":
         perfect = input(
-            "Did the generated code do everything you wanted? " + TERM_CHOICES
+            f"Did the generated code do everything you wanted? {TERM_CHOICES}"
         )
         while perfect not in ("y", "n", "u"):
             perfect = input("Invalid input. Please enter y, n, or u: ")
 
         if perfect != "y":
-            useful = input("Did the generated code do anything useful? " + TERM_CHOICES)
+            useful = input(f"Did the generated code do anything useful? {TERM_CHOICES}")
             while useful not in ("y", "n", "u"):
                 useful = input("Invalid input. Please enter y, n, or u: ")
 
@@ -205,8 +205,7 @@ def logs_to_string(steps: List[Step], logs: FileRepository) -> str:
     """
     chunks = []
     for step in steps:
-        chunks.append(f"--- {step.__name__} ---\n")
-        chunks.append(logs[step.__name__])
+        chunks.extend((f"--- {step.__name__} ---\n", logs[step.__name__]))
     return "\n".join(chunks)
 
 
@@ -241,7 +240,7 @@ def extract_learning(
     review = None
     if "review" in dbs.memory:
         review = Review.from_json(dbs.memory["review"])  # type: ignore
-    learning = Learning(
+    return Learning(
         prompt=dbs.input["prompt"],
         model=model,
         temperature=temperature,
@@ -253,7 +252,6 @@ def extract_learning(
         workspace=dbs.memory.get("all_output.txt"),
         review=review,
     )
-    return learning
 
 
 def get_session() -> str:
@@ -276,4 +274,4 @@ def get_session() -> str:
             path.write_text(user_id)
         return user_id
     except IOError:
-        return "ephemeral_" + str(random.randint(0, 2**32))
+        return f"ephemeral_{random.randint(0, 2**32)}"

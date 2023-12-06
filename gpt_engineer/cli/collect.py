@@ -104,9 +104,7 @@ def collect_learnings(
         # Add some extra characters for the "[REMOVED...]" string and for safety margin
         remove_length = overflow + len(f"[REMOVED {overflow} CHARACTERS]") + 100
 
-        learnings.logs = (
-            learnings.logs[:-remove_length] + f"\n\n[REMOVED {remove_length} CHARACTERS]"
-        )
+        learnings.logs = f"{learnings.logs[:-remove_length]}\n\n[REMOVED {remove_length} CHARACTERS]"
 
         print(
             "WARNING: learning too big, removing some parts. "

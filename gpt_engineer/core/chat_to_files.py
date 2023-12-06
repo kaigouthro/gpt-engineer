@@ -138,8 +138,7 @@ def get_code_strings(
 
     for full_file_path in files_paths:
         if os.path.isdir(full_file_path):
-            for file_path in _get_all_files_in_dir(full_file_path):
-                files.append(file_path)
+            files.extend(iter(_get_all_files_in_dir(full_file_path)))
         else:
             files.append(full_file_path)
 
@@ -174,13 +173,12 @@ def format_file_to_input(file_name: str, file_content: str) -> str:
     str
         The formatted file string.
     """
-    file_str = f"""
+    return f"""
     {file_name}
     ```
     {file_content}
     ```
     """
-    return file_str
 
 
 def overwrite_files_with_edits(chat: str, dbs: FileRepositories):

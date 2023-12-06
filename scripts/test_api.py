@@ -17,8 +17,7 @@ def post_data(url, extra_arguments):
     - response: The response from the server.
     """
 
-    response = requests.post(url, json=extra_arguments)
-    return response
+    return requests.post(url, json=extra_arguments)
 
 
 if __name__ == "__main__":
