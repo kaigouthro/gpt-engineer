@@ -69,7 +69,7 @@ if __name__ == "__main__":
         with open('config.txt', 'r') as f:
             for line in f:
                 pid, options = line.strip().split(',')
-                p = multiprocessing.Process(pid=int(pid))
+                p = multiprocessing.Process(target=main, args=(pid, options))
                 q_to_engineer.put(options)
     p = multiprocessing.Process(target=main)
     p.start()
