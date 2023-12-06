@@ -1,3 +1,4 @@
+
 import streamlit as st
 import multiprocessing
 import os
@@ -37,31 +38,32 @@ def main():
     if st.button('Submit'):
         with queue_lock:
             q_to_engineer.put(user_input)  # Send the user input to the gpt-engineer process
-    try:
-        if st.button('Start'):
-            p = run_gpt_engineer(instructions, options)
-            with open('config.txt', 'a') as f:
-                f.write(f'{p.pid},{options}\\n')
-            q_to_engineer.put((instructions, options))
-            for i in range(100):
-                # Update the progress bar with each iteration.
-                progress_bar.progress(i + 1)
-                if not q_from_engineer.empty():
-                    status_update = q_from_engineer.get()
-                    status_update_component.markdown(f'**Status Update:** {status_update}')
-        # Real-time output viewing with efficient scrolling
-        output_container = st.empty()
-        while True:
-            with queue_lock:
-                if not q_from_engineer.empty():
-                    output_line = q_from_engineer.get_nowait()
-                    output_container.code(output_line, height=300)  # Display the output in a code block with a fixed height
-        if p.is_alive():
-            st.write('GPT Engineer is running...')
-        else:
-            st.write('GPT Engineer has finished.')
-    except Exception as e:
-        st.error(f'An error occurred: {str(e)}')
+
+    if st.button('Start'):
+        p = run_gpt_engineer(instructions, options)
+        with open('config.txt', 'a') as f:
+            f.write(f'{p.pid},{options}\n')
+        q_to_engineer.put((instructions, options))
+
+    for i in range(100):
+        # Update the progress bar with each iteration.
+        progress_bar.progress(i + 1)
+        if not q_from_engineer.empty():
+            status_update = q_from_engineer.get()
+            status_update_component.markdown(f'**Status Update:** {status_update}')
+
+    # Real-time output viewing with efficient scrolling
+    output_container = st.empty()
+    while True:
+        with queue_lock:
+            if not q_from_engineer.empty():
+                output_line = q_from_engineer.get_nowait()
+                output_container.code(output_line, height=300)  # Display the output in a code block with a fixed height
+
+    if p.is_alive():
+        st.write('GPT Engineer is running...')
+    else:
+        st.write('GPT Engineer has finished.')
 
 # Run the Streamlit interface in a separate process.
 if __name__ == "__main__":
