@@ -1,10 +1,11 @@
-from typing import Any, List, Dict, NamedTuple
-from pathlib import Path
 from collections import defaultdict
-from langchain.text_splitter import TextSplitter
-from langchain.docstore.document import Document
-from gpt_engineer.data.supported_languages import SUPPORTED_LANGUAGES
+from pathlib import Path
+from typing import Any, Dict, List, NamedTuple
+
 import tree_sitter_languages
+from gpt_engineer.data.supported_languages import SUPPORTED_LANGUAGES
+from langchain.docstore.document import Document
+from langchain.text_splitter import TextSplitter
 
 
 class CodeSplitter(TextSplitter):
@@ -63,8 +64,7 @@ class CodeSplitter(TextSplitter):
 
         if not tree.root_node.children or tree.root_node.children[0].type != "ERROR":
             return [chunk.strip() for chunk in self._chunk_node(tree.root_node, text)]
-        else:
-            raise ValueError(f"Could not parse code with language {self.language}.")
+        raise ValueError(f"Could not parse code with language {self.language}.")
 
 
 class SortedDocuments(NamedTuple):
@@ -73,11 +73,10 @@ class SortedDocuments(NamedTuple):
 
 
 class DocumentChunker:
-    def chunk_documents(self) -> List[Document]:
+    @classmethod
+    def chunk_documents(cls, documents) -> List[Document]:
         chunked_documents = []
-
-        sorted_documents = _sort_documents_by_programming_language_or_other(self)
-
+        sorted_documents = cls._sort_documents_by_programming_language_or_other(documents)
         for language, language_documents in sorted_documents.by_language.items():
             code_splitter = CodeSplitter(
                 language=language.lower(),
@@ -85,12 +84,7 @@ class DocumentChunker:
                 chunk_lines_overlap=15,
                 max_chars=1500,
             )
-
             chunked_documents.extend(code_splitter.split_documents(language_documents))
-
-        # for now only include code files!
-        # chunked_documents.extend(sorted_documents.other)
-
         return chunked_documents
 
     @staticmethod
@@ -106,13 +100,14 @@ class DocumentChunker:
             language_found = False
 
             for lang in SUPPORTED_LANGUAGES:
-                if extension in lang["extensions"]:
-                    doc.metadata["is_code"] = True
-                    doc.metadata["code_language"] = lang["name"]
-                    doc.metadata["code_language_tree_sitter_name"] = lang["tree_sitter_name"]
-                    docs_to_split[lang["tree_sitter_name"]].append(doc)
-                    language_found = True
-                    break
+                if extension not in lang["extensions"]:
+                    continue
+                doc.metadata["is_code"] = True
+                doc.metadata["code_language"] = lang["name"]
+                doc.metadata["code_language_tree_sitter_name"] = lang["tree_sitter_name"]
+                docs_to_split[lang["tree_sitter_name"]].append(doc)
+                language_found = True
+                break
 
             if not language_found:
                 doc.metadata["isCode"] = False
@@ -120,8 +115,12 @@ class DocumentChunker:
 
         return SortedDocuments(by_language=dict(docs_to_split), other=other_docs)
 
+
 # Load the Markdown documents
-markdown_files = []  # This should be replaced with the actual loading of the Markdown files
+markdown_files = (
+    []
+)  # This should be replaced with the actual loading of the Markdown files
 
 # Call the chunk_documents method with the loaded Markdown documents
-chunked_documents = DocumentChunker.chunk_documents(markdown_files)
+CHUNKER = DocumentChunker()
+chunked_documents = CHUNKER.chunk_documents(markdown_files)

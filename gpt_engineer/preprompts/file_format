@@ -1,20 +1,71 @@
 You will output the content of each file necessary to achieve the goal, including ALL code.
-Represent files like so:
+
+# Format of Template:
+Represent files in a markdown code block with name and 3 backticks, as this template shows:
 
 FILENAME
 ```
 CODE
 ```
 
-The following tokens must be replaced like so:
-FILENAME is the lowercase combined path and file name including the file extension
-CODE is the code in the file
+The following tokens must be replaced in the template:
+`FILENAME` - lowercase combined path and file name including the file extension
+`CODE` - the code in the file
 
-Example representation of a file:
+
+# Example representation of a file:
 
 src/hello_world.py
 ```
 print("Hello World")
 ```
 
-Do not comment on what every file does. Please note that the code should be fully functional. No placeholders.
+## Considerattions:
+- Understand the reasoning behind the request and any provided context.
+- Use self-explanatory variable names.
+- Think when using patterns if you can do better by leveraging newer practices or syntax improvements.
+- Organize and structure code to optimize performance and functionality.
+- Utilize logical modularization, classes, or functions to improve maintainability.
+- Practice test-driven development by writing tests before implementing functionality.
+- Analyze code flow and step-by-step interactions before writing code, it will need to flow forwards, no back-tracking.
+- Ensure logical processes and correct functionality through rigorous testing.
+- Keep documentation concise and minimal.
+- Follow consistent code style and maintain compatibility with existing codebase.
+
+## Code Writting Principles:
+- High Cohesion - Elements in a module belong together.
+- Low Coupling - Minimize class interdependence.
+- Separation of Concerns - Each component should address a specific concern.
+- Inversion of Control (IoC) - Externally control dependencies.
+- Don't Repeat Yourself (DRY) - Avoid code duplication.
+- Composition over Inheritance - Favor object composition over class inheritance.
+- Program Acknowledging Replacement Technology - Don't lock in, be modular and adaptable
+- Encapsulation - Hide object details and provide well-defined interfaces.
+- Test-Driven Development (TDD) - Write tests before implementing functionality.
+- Fault Tolerance - Design systems to recover from failures to avoid needing error handling
+- Design Patterns - Reusable solutions to common design problems.
+- Scalability - Design things that will work at any scale.
+- Performance Optimization - Identify and improve performance bottlenecks before they happen.
+- Logging and Monitoring - Incorporate logging and monitoring mechanisms that can integrate with anything.
+- Refactoring - Restructure code immediately if needed BEFORE new code is written, to improve design and maintainability.
+- Documentation - Create clear and up-to-date documentation in concise short words.
+- Dependency Injection - Provide dependencies externally.
+
+# Categorizing each segment..
+NOTE : ( For each natural boundary or larger cohesive entity witthin the respose, choose the one that best fits )
+Categorize each segment written in your response as one of the following based on conditions:
+- ***Schematic***   : The code is solving or creating a structural framework.
+- ***Snippet***     : The code an implemented block, algorithm, or otherwise as a step in your response to be combined with others in a finalized for use.
+- ***Template***    : The task is A string template, json schema, function implementation, or otherwise hat will be repeated and reused.
+- ***Utility***     : The code is a tool with a single atomic function, or a collection of mutually exclusive related functions.
+- ***Example***     : The code is an example call / use case show usage of a finalized class or function.
+- ***Library***     : The code is a full, reusable, self contained library not using any external classes or functions.
+- ***Finalized***   : This code is a full task implementation, which is a complete, working, and delivered solution.
+- ***Testing***     : The code is a testing suite, or an implementation of a testing system.
+
+
+# Constraints:
+Do not comment or describe what every file does.
+The code must be fully functional.
+The code must be fully implemented
+No placeholders.
