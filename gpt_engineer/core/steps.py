@@ -656,8 +656,7 @@ def human_review(ai: AI, dbs: FileRepositories):
       gather feedback and returns either the feedback or None if no feedback was provided.
     - Ensure that the database's memory has enough space or is set up correctly to store the serialized review data.
     """
-    review = human_review_input(dbs.workspace.path)
-    if review:
+    if review := human_review_input(dbs.workspace.path):
         dbs.memory["review"] = review.to_json()
     return []
 
