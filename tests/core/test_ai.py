@@ -1,6 +1,7 @@
-from gpt_engineer.core.ai import AI
-from langchain.chat_models.fake import FakeListChatModel
 from langchain.chat_models.base import BaseChatModel
+from langchain_community.chat_models.fake import FakeListChatModel
+
+from gpt_engineer.core.ai import AI
 
 
 def mock_create_chat_model(self) -> BaseChatModel:
@@ -13,7 +14,7 @@ def test_start(monkeypatch):
     ai = AI("gpt-4")
 
     # act
-    response_messages = ai.start("system prompt", "user prompt", "step name")
+    response_messages = ai.start("system prompt", "user prompt", step_name="step name")
 
     # assert
     assert response_messages[-1].content == "response1"
@@ -24,7 +25,7 @@ def test_next(monkeypatch):
     monkeypatch.setattr(AI, "_create_chat_model", mock_create_chat_model)
 
     ai = AI("gpt-4")
-    response_messages = ai.start("system prompt", "user prompt", "step name")
+    response_messages = ai.start("system prompt", "user prompt", step_name="step name")
 
     # act
     response_messages = ai.next(
@@ -42,7 +43,7 @@ def test_token_logging(monkeypatch):
     ai = AI("gpt-4")
 
     # act
-    response_messages = ai.start("system prompt", "user prompt", "step name")
+    response_messages = ai.start("system prompt", "user prompt", step_name="step name")
     usageCostAfterStart = ai.token_usage_log.usage_cost()
     ai.next(response_messages, "next user prompt", step_name="step name")
     usageCostAfterNext = ai.token_usage_log.usage_cost()

@@ -1,11 +1,15 @@
 """
 Tests for successful installation of the package.
 """
-import pytest
+
+import shutil
 import subprocess
 import sys
 import venv
-import shutil
+
+from pathlib import Path
+
+import pytest
 
 # Define the directory for the virtual environment.
 VENV_DIR = "./venv_test_installation"
@@ -25,7 +29,7 @@ def venv_setup_teardown():
     """
     try:
         # Create a virtual environment with pip available.
-        venv.create(VENV_DIR, with_pip=True)
+        venv.create(VENV_DIR, with_pip=True, clear=True)
 
         # Install Poetry in the virtual environment.
         subprocess.run(
@@ -60,7 +64,9 @@ def test_installation():
     result = subprocess.run([poetry_executable, "install"], capture_output=True)
 
     # Assert that the installation was successful.
-    assert result.returncode == 0, f"Install via poetry failed: {result.stderr.decode()}"
+    assert (
+        result.returncode == 0
+    ), f"Install via poetry failed: {result.stderr.decode()}"
 
 
 def test_cli_execution():
@@ -77,3 +83,25 @@ def test_cli_execution():
     assert (
         result.returncode == 0
     ), f"gpt-engineer command failed with message: {result.stderr}"
+
+
+@pytest.mark.requires_key
+def test_installed_main_execution(tmp_path, monkeypatch):
+    # Ignore git installation check
+    monkeypatch.setattr("gpt_engineer.core.git.is_git_installed", lambda: False)
+    tmp_path = Path(tmp_path)
+    p = tmp_path / "projects/example"
+    p.mkdir(parents=True)
+    (p / "prompt").write_text("make a program that prints the outcome of 4+4")
+    proc = subprocess.Popen(
+        ["gpte", str(p)],
+        stdin=subprocess.PIPE,
+        stdout=subprocess.PIPE,
+        text=True,
+        cwd=tmp_path,
+    )
+
+    inputs = "Y\nn"
+    output, _ = proc.communicate(inputs)
+
+    assert "8" in output

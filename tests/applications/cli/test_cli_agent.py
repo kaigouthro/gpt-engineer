@@ -1,27 +1,42 @@
-import pytest
+import os
 import tempfile
-from tests.caching_ai import CachingAI
+
+import pytest
+
+from langchain.schema import AIMessage
+
 from gpt_engineer.applications.cli.cli_agent import CliAgent
-from gpt_engineer.tools.custom_steps import self_heal, lite_gen, clarified_gen
-from gpt_engineer.core.files_dict import FilesDict
 from gpt_engineer.core.default.disk_execution_env import DiskExecutionEnv
 from gpt_engineer.core.default.disk_memory import DiskMemory
 
 # from gpt_engineer.core.default.git_version_manager import GitVersionManager
-from gpt_engineer.core.default.paths import memory_path, ENTRYPOINT_FILE
-import os
+from gpt_engineer.core.default.paths import ENTRYPOINT_FILE, memory_path
+from gpt_engineer.core.files_dict import FilesDict
+from gpt_engineer.core.prompt import Prompt
+from gpt_engineer.tools.custom_steps import clarified_gen, lite_gen
+from tests.mock_ai import MockAI
 
 
 def test_init_standard_config(monkeypatch):
-    monkeypatch.setattr("builtins.input", lambda: "y")
+    monkeypatch.setattr("builtins.input", lambda _: "y")
     temp_dir = tempfile.mkdtemp()
     memory = DiskMemory(memory_path(temp_dir))
     execution_env = DiskExecutionEnv()
-    cli_agent = CliAgent.with_default_config(memory, execution_env, ai=CachingAI())
+    mock_ai = MockAI(
+        [
+            AIMessage(
+                "hello_world.py\n```\nwith open('output.txt', 'w') as file:\n    file.write('Hello World!')\n```"
+            ),
+            AIMessage("```run.sh\npython3 hello_world.py\n```"),
+        ],
+    )
+    cli_agent = CliAgent.with_default_config(memory, execution_env, ai=mock_ai)
     outfile = "output.txt"
-    file_path = os.path.join(temp_dir, outfile)
+    os.path.join(temp_dir, outfile)
     code = cli_agent.init(
-        f"Make a program that prints 'Hello World!' to a file called '{outfile}'"
+        Prompt(
+            f"Make a program that prints 'Hello World!' to a file called '{outfile}'"
+        )
     )
 
     env = DiskExecutionEnv()
@@ -33,18 +48,28 @@ def test_init_standard_config(monkeypatch):
 
 
 def test_init_lite_config(monkeypatch):
-    monkeypatch.setattr("builtins.input", lambda: "y")
+    monkeypatch.setattr("builtins.input", lambda _: "y")
     temp_dir = tempfile.mkdtemp()
     memory = DiskMemory(memory_path(temp_dir))
     # version_manager = GitVersionManager(temp_dir)
     execution_env = DiskExecutionEnv()
+    mock_ai = MockAI(
+        [
+            AIMessage(
+                "hello_world.py\n```\nwith open('output.txt', 'w') as file:\n    file.write('Hello World!')\n```"
+            ),
+            AIMessage("```run.sh\npython3 hello_world.py\n```"),
+        ],
+    )
     cli_agent = CliAgent.with_default_config(
-        memory, execution_env, ai=CachingAI(), code_gen_fn=lite_gen
+        memory, execution_env, ai=mock_ai, code_gen_fn=lite_gen
     )
     outfile = "output.txt"
-    file_path = os.path.join(temp_dir, outfile)
+    os.path.join(temp_dir, outfile)
     code = cli_agent.init(
-        f"Make a program that prints 'Hello World!' to a file called '{outfile}'"
+        Prompt(
+            f"Make a program that prints 'Hello World!' to a file called '{outfile}'"
+        )
     )
 
     env = DiskExecutionEnv()
@@ -56,16 +81,27 @@ def test_init_lite_config(monkeypatch):
 
 
 def test_init_clarified_gen_config(monkeypatch):
-    monkeypatch.setattr("builtins.input", lambda: "y")
+    monkeypatch.setattr("builtins.input", lambda _: "y")
     temp_dir = tempfile.mkdtemp()
     memory = DiskMemory(memory_path(temp_dir))
     execution_env = DiskExecutionEnv()
+    mock_ai = MockAI(
+        [
+            AIMessage("nothing to clarify"),
+            AIMessage(
+                "hello_world.py\n```\nwith open('output.txt', 'w') as file:\n    file.write('Hello World!')\n```"
+            ),
+            AIMessage("```run.sh\npython3 hello_world.py\n```"),
+        ],
+    )
     cli_agent = CliAgent.with_default_config(
-        memory, execution_env, ai=CachingAI(), code_gen_fn=clarified_gen
+        memory, execution_env, ai=mock_ai, code_gen_fn=clarified_gen
     )
     outfile = "output.txt"
     code = cli_agent.init(
-        f"Make a program that prints 'Hello World!' to a file called '{outfile} either using python or javascript'"
+        Prompt(
+            f"Make a program that prints 'Hello World!' to a file called '{outfile} either using python or javascript'"
+        )
     )
 
     env = DiskExecutionEnv()
@@ -76,29 +112,8 @@ def test_init_clarified_gen_config(monkeypatch):
     assert code[outfile].strip() == "Hello World!"
 
 
-# def test_init_self_heal_config(monkeypatch):
-#     monkeypatch.setattr("builtins.input", lambda: "y")
-#     temp_dir = tempfile.mkdtemp()
-#     memory = DiskMemory(memory_path(temp_dir))
-#     execution_env = DiskExecutionEnv()
-#     cli_agent = CliAgent.with_default_config(
-#         memory, execution_env, ai=CachingAI(), process_code_fn=self_heal
-#     )
-#     outfile = "output.txt"
-#     file_path = os.path.join(temp_dir, outfile)
-#     code = cli_agent.init(
-#         f"Make a program that prints 'Hello World!' to a file called '{outfile}'. Make an intentional mistake in the code causing a runtime error"
-#     )
-#     env = DiskExecutionEnv()
-#     env.upload(code).run(f"bash {ENTRYPOINT_FILE}")
-#     code = env.download()
-#
-#     assert outfile in code
-#     assert code[outfile].strip() == "Hello World!"
-
-
 def test_improve_standard_config(monkeypatch):
-    monkeypatch.setattr("builtins.input", lambda: "y")
+    monkeypatch.setattr("builtins.input", lambda _: "y")
     temp_dir = tempfile.mkdtemp()
     code = FilesDict(
         {
@@ -110,10 +125,20 @@ def test_improve_standard_config(monkeypatch):
     memory = DiskMemory(memory_path(temp_dir))
     # version_manager = GitVersionManager(temp_dir)
     execution_env = DiskExecutionEnv()
-    cli_agent = CliAgent.with_default_config(memory, execution_env, ai=CachingAI())
+    mock_ai = MockAI(
+        [
+            AIMessage(
+                "```diff\n--- main.py\n+++ main.py\n@@ -7,3 +7,3 @@\n     with open(filename, 'w') as file:\n-        file.write('Hello World!')\n+        file.write('!dlroW olleH')\n```"
+            )
+        ]
+    )
+    cli_agent = CliAgent.with_default_config(memory, execution_env, ai=mock_ai)
+
     code = cli_agent.improve(
         code,
-        "Change the program so that it prints '!dlroW olleH' instead of 'Hello World!'",
+        Prompt(
+            "Change the program so that it prints '!dlroW olleH' instead of 'Hello World!'"
+        ),
     )
 
     env = DiskExecutionEnv()

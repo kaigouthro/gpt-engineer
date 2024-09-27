@@ -31,8 +31,9 @@ venv_test_installation/
 # Python testing
 .pytest_cache/
 .ruff_cache/
-.coverage
 .mypy_cache/
+.coverage
+coverage.*
 
 # macOS specific files
 .DS_Store
@@ -55,22 +56,19 @@ scratchpad
 
 # projects folder apart from default prompt
 
-projects
+projects/*
 !projects/example/prompt
 !projects/example-improve
 
 # docs
 
 docs/_build
-docs/__init__
-docs/ai
-docs/chat_to_files
-docs/collect
-docs/learning
-docs/main
-docs/steps/
-docs/db
-docs/db/
+docs/applications
+docs/benchmark
+docs/cli
+docs/core
+docs/intro
+docs/tools
 
 # coding assistants
 .aider*
@@ -86,3 +84,6 @@ webapp/.next/
 
 # TODO files
 /!todo*
+
+#ignore tox files
+.tox

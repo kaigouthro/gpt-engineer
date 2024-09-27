@@ -1,24 +1,20 @@
 from abc import ABC, abstractmethod
-from gpt_engineer.core.files_dict import FilesDict
 from subprocess import Popen
+from typing import Optional, Tuple
+
+from gpt_engineer.core.files_dict import FilesDict
 
 
 class BaseExecutionEnv(ABC):
     """
-    Abstract base class for an execution environment.
+    Abstract base class for an execution environment capable of running code.
 
-    This class defines the interface for execution environments that can run code.
-    Implementations of this class are expected to provide a method to execute code
-    and potentially handle the execution process.
-
-    Methods
-    -------
-    execute_program(code: Code) -> Popen:
-        Execute the given code and return the process handle.
+    This class defines the interface for execution environments that can execute commands,
+    handle processes, and manage file uploads and downloads.
     """
 
     @abstractmethod
-    def run(self, command: str, timeout: int | None = None) -> tuple[str, str, int]:
+    def run(self, command: str, timeout: Optional[int] = None) -> Tuple[str, str, int]:
         """
         Runs a command in the execution environment.
         """
